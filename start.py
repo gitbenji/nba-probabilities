@@ -15,6 +15,7 @@ player_id = ''
 if len(player_info_list) > 1:
 	for index, player in enumerate(player_info_list):
 		player_object[index] = player['full_name'] if player['is_active'] else ''
+	print(player_object)
 	which_player = int(input("which number: "))
 	print(player_info_list[which_player])
 	player_id = player_info_list[which_player]['id']
@@ -44,8 +45,12 @@ if num_games != '':
 # calculate statistical values
 mean = game_log[stat].mean()
 std_dev = game_log[stat].std()
+var = game_log[stat].var()
+r = mean**2 / (var - mean)
+p = 1 - (mean / var)		
 print("mean: ", mean)
 print("std_dev: ", std_dev)
+print("var: ", var)	
 
 # prompt for betting line
 line = float(input('whats the line?: '))
@@ -54,12 +59,12 @@ line = float(input('whats the line?: '))
 if hasattr(game_log, stat):
 	dist = stats.norm(loc=mean, scale=std_dev)
 	dist_p = stats.poisson(mu=mean)
-	print(dist)
+	dist_n = stats.nbinom(r, p)	
 	prob = 1 - dist.cdf(line)
 	prob_p = 1 - dist_p.cdf(line)
-	print("mean: ", mean)
-	print("std_dev: ", std_dev)
+	prob_n = 1 - dist_n.cdf(1)	
 	print("normal: ", prob)
 	print("poisson: ", prob_p)
+	print("negative: ", prob_n)		
 else:
 	print('no stat here')
