@@ -112,7 +112,7 @@ def main():
 
 			write_to_csv(combined_data, './dist/records.csv')
 
-		print('written: ', num_games)
+		print('written: ', num_games, ' games for: ', stat['stat'])
 
 if __name__ == '__main__':
 	main()
