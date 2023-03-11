@@ -3,7 +3,7 @@ from nba_api.stats import endpoints
 from nba_api.stats.static import players
 import numpy as np
 from scipy import stats
-import time
+from datetime import datetime
 import csv
 
 def get_player_data():
@@ -44,7 +44,7 @@ def query_game_log(player_data):
 
 # prompt for stat to look up
 def get_stat():
-	return { 'stat': input('what stat? type <enter><enter> to save and exit: ').upper() }
+	return { 'stat': input('what stat? <enter> to save and exit: ').upper() }
 
 # limit number of games if desired
 def get_num_games(game_log):
@@ -62,7 +62,7 @@ def get_simple_data(game_log, stat):
 	std_dev = game_log[stat].std()
 	print("mean: ", mean)
 	print("std_dev: ", std_dev)
-	return { 'mean': mean, 'std_dev': std_dev }
+	return { 'mean': round(mean, 4), 'std_dev': round(std_dev, 4) }
 
 def get_line():
 	return { 'line': float(input('what\'s the line?: ')) }
@@ -75,7 +75,13 @@ def get_probabilities(line, simple_data):
 	prob_p = 1 - dist_p.cdf(line)
 	print("normal: ", prob)
 	print("poisson: ", prob_p)
-	return { 'normal': prob, 'poisson': prob_p }
+	return { 'normal': round(prob, 4), 'poisson': round(prob_p, 4) }
+
+def write_to_csv(data, filename):
+	with open(filename, 'a', newline='') as csvfile:
+		writer = csv.DictWriter(csvfile, fieldnames=data.keys())
+		writer.writerow(data)
+	print('written: ', data)
 
 def main():
 	player_data = get_player_data()
@@ -88,7 +94,8 @@ def main():
 		stat = get_stat()
 
 		# Check if the user double taps enter
-		if stat == "" and user_input.endswith('\n\n'):
+		if stat['stat'] == '':
+			print('goodbye')
 			break
 
 		num_games = get_num_games(game_log)
@@ -99,9 +106,10 @@ def main():
 
 		probabilities = get_probabilities(line['line'], simple_data)
 
-		combined_data = {**player_data, **stat, **num_games, **simple_data, **line, **probabilities}
+		combined_data = {**{'timestamp': datetime.now()}, **player_data, **stat, **num_games, **simple_data, **line, **probabilities}
 
-		print(combined_data)
+		write_to_csv(combined_data, 'records.csv')
+
 
 if __name__ == '__main__':
 	main()
