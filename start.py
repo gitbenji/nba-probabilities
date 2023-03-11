@@ -5,6 +5,8 @@ import numpy as np
 from scipy import stats
 from datetime import datetime
 import csv
+import os
+import os.path
 
 def get_player_data():
 	# get player by lastname
@@ -60,8 +62,6 @@ def get_num_games(game_log):
 def get_simple_data(game_log, stat):
 	mean = game_log[stat].mean()
 	std_dev = game_log[stat].std()
-	print("mean: ", mean)
-	print("std_dev: ", std_dev)
 	return { 'mean': round(mean, 4), 'std_dev': round(std_dev, 4) }
 
 def get_line():
@@ -73,15 +73,16 @@ def get_probabilities(line, simple_data):
 	dist_p = stats.poisson(mu=simple_data['mean'])
 	prob = 1 - dist.cdf(line)
 	prob_p = 1 - dist_p.cdf(line)
-	print("normal: ", prob)
-	print("poisson: ", prob_p)
 	return { 'normal': round(prob, 4), 'poisson': round(prob_p, 4) }
 
 def write_to_csv(data, filename):
+	os.makedirs(os.path.dirname(filename), exist_ok=True)
+	file_exists = os.path.isfile(filename)
 	with open(filename, 'a', newline='') as csvfile:
 		writer = csv.DictWriter(csvfile, fieldnames=data.keys())
+		if not file_exists:
+			writer.writeheader()  # file doesn't exist yet, write a header
 		writer.writerow(data)
-	print('written: ', data)
 
 def main():
 	player_data = get_player_data()
@@ -93,23 +94,25 @@ def main():
 
 		stat = get_stat()
 
-		# Check if the user double taps enter
+		# Check if the user taps enter
 		if stat['stat'] == '':
 			print('goodbye')
 			break
 
-		num_games = get_num_games(game_log)
-
-		simple_data = get_simple_data(game_log.head(num_games['num_games']), stat['stat'])
-
 		line = get_line()
 
-		probabilities = get_probabilities(line['line'], simple_data)
+		num_games = [5, 10, 20, game_log.shape[0]]
 
-		combined_data = {**{'timestamp': datetime.now()}, **player_data, **stat, **num_games, **simple_data, **line, **probabilities}
+		for num in num_games:
+			simple_data = get_simple_data(game_log.head(num), stat['stat'])
 
-		write_to_csv(combined_data, 'records.csv')
+			probabilities = get_probabilities(line['line'], simple_data)
 
+			combined_data = {**{'timestamp': datetime.now()}, **player_data, **stat, **{'num_games': num}, **simple_data, **line, **probabilities}
+
+			write_to_csv(combined_data, './dist/records.csv')
+
+		print('written: ', num_games)
 
 if __name__ == '__main__':
 	main()
